@@ -40,7 +40,7 @@ def init_driver():
 
 
 def get_2010_census_caps():
-    caps_2010 = pd.read_csv('2010_caps_data.csv')
+    caps_2010 = pd.read_csv('../data/2010_caps_data.csv')
     caps_2010['TractNumber'] = caps_2010['Geographic Area Name'].str.split(',')
     caps_2010['TractNumber'] = caps_2010['TractNumber'].str.get(0).str[13:] + caps_2010['TractNumber'].str.get(1)
     caps_2010['TractNumber'] = caps_2010['TractNumber'].str[:-7]
@@ -49,7 +49,7 @@ def get_2010_census_caps():
 
 
 def get_2020_census_caps():
-    caps_2020 = pd.read_csv('2020_caps_data.csv')
+    caps_2020 = pd.read_csv('../data/2020_caps_data.csv')
     caps_2020['TractNumber'] = caps_2020['Geographic Area Name'].str.split(',')
     caps_2020['TractNumber'] = caps_2020['TractNumber'].str.get(0).str[13:] + caps_2020['TractNumber'].str.get(1)
     caps_2020['TractNumber'] = caps_2020['TractNumber'].str[:-7]
@@ -81,16 +81,19 @@ class ACSData:
         return: caps_2010 <pandas.DataFrame>
             a DataFrame with 2010 CAPS information loaded at the 4 required radius levels
         """
-        pop_hh_2000 = []
-        for radius in [0.5, 0.75, 1, 1.25]:
+        pop_hh_2000 = [[0, 0]]
+        for radius in [0.75, 1, 1.25]:
             url = 'https://mcdc.missouri.edu/cgi-bin/broker?_PROGRAM=apps.caps2000.sas&_debug=&latitude={}&' \
                   'longitude={}&radii={}&sitename=&tablelist=all&units=+'.format(self.lat, self.long, radius)
             self.driver_2000.get(url)
             population = self.driver_2000.find_element(By.XPATH, '//*[@id="body"]/table/tbody[2]/tr[49]/td[2]')
             households = self.driver_2000.find_element(By.XPATH, '//*[@id="body"]/table/tbody[2]/tr[50]/td[2]')
-            pop_hh_2000.append([population.get_attribute['innerHTML'], households.get_attribute['innerHTML']])
+            pop_hh_2000.append([int(population.get_attribute('innerHTML').replace(",", "")),
+                                int(households.get_attribute('innerHTML').replace(",", ""))])
+        pop_hh_2000[0][0] = (pop_hh_2000[1][0] + pop_hh_2000[2][0] + pop_hh_2000[3][0]) / 4
+        pop_hh_2000[0][1] = (pop_hh_2000[1][1] + pop_hh_2000[2][1] + pop_hh_2000[3][1]) / 4
         print('2000 Population and Households Loaded')
-        return caps_2000
+        return pop_hh_2000
 
     def get_current_caps(self):
         """
@@ -103,6 +106,7 @@ class ACSData:
         table_link = self.current_driver.find_element(By.XPATH, '//*[@id="body"]/p[1]/a').get_attribute('href')
         acs_table = pd.read_csv(table_link)
         acs_table['MedianHHInc'] = acs_table['MedianHHInc'].str.replace('[^0-9]', '', regex=True).astype('int')
+        acs_table['TotHHs'] = acs_table['TotHHs'].str.replace('[^0-9]', '', regex=True).astype('int')
         print('Current CAPS ACS Table Loaded')
         return acs_table
 
