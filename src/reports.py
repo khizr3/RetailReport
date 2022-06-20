@@ -30,35 +30,48 @@ class _Reports:
 
     def get_combined_data(self):
         df = pd.DataFrame({'2010 Pop': [], '2010 HH': [], '2010 WCollar': [], '2010 BCollar': [], '2010 Median Inc': [],
-                           '2010 Mean Inc': [], '2020 Pop': [], '2020 HH': [], '2020 WCollar': [], '2020 BCollar': [],
-                           '2020 Median Inc': [], '2020 Mean Inc': []})
+                           '2010 Mean Inc': [], 'NULL': [], 'NULL1': [], '2020 Pop': [], '2020 HH': [],
+                           '2020 WCollar': [], '2020 BCollar': [], '2020 Median Inc': [], '2020 Mean Inc': [],
+                           '2020 Employees': [], '2020 Daytime Pop': []})
         for radius in [0.5, 0.75, 1, 1.25]:
-            data_2010 = [0, 0, 0, 0, 0, 0]
-            data_current = [0, 0, 0, 0, 0, 0]
+            data_2010 = [0, 0, 0, 0, 0, 0, 0, 0]
+            data_current = [0, 0, 0, 0, 0, 0, 0, 0]
             radius_pop_2010 = self.af_table_2010[self.af_table_2010['Radius'] == radius]
             radius_pop_current = self.af_table_current[self.af_table_current['Radius'] == radius]
-            total_pop_2010 = radius_pop_2010['Total population'].sum()
-            total_pop_current = radius_pop_current['Total population'].sum()
-            print(len(radius_pop_2010), len(radius_pop_current))
+            pop_2010 = radius_pop_2010['Total population'].sum()
+            pop_current = radius_pop_current['Total population'].sum()
             for row in radius_pop_2010.itertuples():
-                percent_total = row[3] / total_pop_2010
                 tract_row = self.census_report_2010.loc[self.census_report_2010['TractNumber'] == row[1]]
-                data_2010[0] += percent_total * float(tract_row['Total population'].values[0])
-                data_2010[1] += percent_total * float(tract_row['Total households'].values[0])
-                data_2010[2] += percent_total * float(tract_row['PCT WHITE COLLAR'].values[0])
-                data_2010[3] += percent_total * float(tract_row['PCT BLUE COLLAR'].values[0])
-                data_2010[4] += percent_total * float(tract_row['Median income'].values[0])
-                data_2010[5] += percent_total * float(tract_row['Mean income'].values[0])
+                af = row[3] / pop_2010
+                percent_of_tract = row[3] / float(tract_row['Total population'].values[0])
+                data_2010[0] += percent_of_tract * af * float(tract_row['Total population'].values[0])
+                data_2010[1] += percent_of_tract * af * float(tract_row['Total households'].values[0])
+                data_2010[2] += af * float(tract_row['PCT WHITE COLLAR'].values[0])
+                data_2010[3] += af * float(tract_row['PCT BLUE COLLAR'].values[0])
+                data_2010[4] += af * float(tract_row['Median income'].values[0])
+                data_2010[5] += af * float(tract_row['Mean income'].values[0])
+                data_2010[6] = 0
+                data_2010[7] = 0
+                print(af, percent_of_tract, row)
             for row in radius_pop_current.itertuples():
-                percent_total = row[3] / total_pop_current
                 tract_row = self.census_report_current.loc[self.census_report_current['TractNumber'] == row[1]]
-                print(tract_row.columns)
-                data_current[0] += percent_total * float(tract_row['Total population'].values[0])
-                data_current[1] += percent_total * float(tract_row['Total households'].values[0])
-                data_current[2] += percent_total * float(tract_row['PCT WHITE COLLAR'].values[0])
-                data_current[3] += percent_total * float(tract_row['PCT BLUE COLLAR'].values[0])
-                data_current[4] += percent_total * float(tract_row['Median income'].values[0])
-                data_current[5] += percent_total * float(tract_row['Mean income'].values[0])
+                af = row[3] / pop_current
+                percent_of_tract = row[3] / float(tract_row['Total population'].values[0])
+                print('AF Table for tract: ', row[1], ' at radius: ', radius)
+                print(af, percent_of_tract, row)
+                data_current[0] += percent_of_tract * af * float(tract_row['Total population'].values[0])
+                data_current[1] += percent_of_tract * af * float(tract_row['Total households'].values[0])
+                data_current[2] += af * float(tract_row['PCT WHITE COLLAR'].values[0])
+                data_current[3] += af * float(tract_row['PCT BLUE COLLAR'].values[0])
+                data_current[4] += af * float(tract_row['Median income'].values[0])
+                data_current[5] += af * float(tract_row['Mean income'].values[0])
+                data_current[6] += percent_of_tract * af * float(tract_row['B08604'].values[0])
+                data_current[7] += percent_of_tract * af * float(tract_row['Daytime Population'].values[0])
+            if radius != 0.5:
+                data_current[0] += df.loc[len(df.index) - 1]['2020 Pop']
+                data_current[1] += df.loc[len(df.index) - 1]['2020 HH']
+                data_current[6] += df.loc[len(df.index) - 1]['2020 Employees']
+                data_current[7] += df.loc[len(df.index) - 1]['2020 Daytime Pop']
             df.loc[len(df.index)] = data_2010 + data_current
         return df
 
@@ -87,7 +100,6 @@ class DemandReport(_Reports):
         Household Expenditure: CURRENT CAPS
         :return:
         """
-        # trade_area = pd.DataFrame()
         population_density = self.__get_population_density()
         household_trend = self.__get_household_trend()
         income = self.__get_income()
@@ -96,7 +108,16 @@ class DemandReport(_Reports):
         occupation = self.__get_occupation()
         age_occupancy = self.__get_age_occupancy()
         sales_potential_expenditure = self.__get_sales_potential_expenditure()
-        # trade_area = pd.concat(trade_area, ['POPULATION TREND', '', '', ''])
+        demand_report = pd.concat([population_density,
+                                   household_trend,
+                                   income,
+                                   race_ethnicity,
+                                   education,
+                                   occupation,
+                                   age_occupancy,
+                                   sales_potential_expenditure])
+
+        return demand_report
 
     def __get_population_density(self):
         df = pd.DataFrame({'DEMAND REPORT': [], '0.5-Mile Radius': [], '0.75-Mile Radius': [], '1.0-Mile Radius': [],
@@ -126,11 +147,31 @@ class DemandReport(_Reports):
         df.loc[6] = ['  % Population Change 2010 to 2024', '', '', '', '']
         df.loc[7] = ['  % Population Change 2020 to 2024', '', '', '', '']
         df.loc[8] = ['', '', '', '', '']
-        df.loc[9] = ['2019 Total Daytime Population', '', '', '', '']
-        df.loc[10] = ['2019 Total Employees', '', '', '', '']
-        df.loc[11] = ['2019 Total Daytime at Home Population', '', '', '', '']
-        df.loc[12] = ['2019 Total Employees (% of Daytime Population)', '', '', '', '']
-        df.loc[13] = ['2019 Total Daytime at Home Population (% of Daytime Population)', '', '', '', '']
+        df.loc[9] = ['2019 Total Daytime Population',
+                     self.combined_data['2020 Daytime Pop'][0],
+                     self.combined_data['2020 Daytime Pop'][1],
+                     self.combined_data['2020 Daytime Pop'][2],
+                     self.combined_data['2020 Daytime Pop'][3]]
+        df.loc[10] = ['2019 Total Employees',
+                      self.combined_data['2020 Employees'][0],
+                      self.combined_data['2020 Employees'][1],
+                      self.combined_data['2020 Employees'][2],
+                      self.combined_data['2020 Employees'][3]]
+        df.loc[11] = ['2019 Total Daytime at Home Population',
+                      df.iat[9, 1] - df.iat[10, 1],
+                      df.iat[9, 2] - df.iat[10, 2],
+                      df.iat[9, 3] - df.iat[10, 3],
+                      df.iat[9, 4] - df.iat[10, 4]]
+        df.loc[12] = ['2019 Total Employees (% of Daytime Population)',
+                      df.iat[10, 1] / df.iat[9, 1] * 100,
+                      df.iat[10, 2] / df.iat[9, 2] * 100,
+                      df.iat[10, 3] / df.iat[9, 3] * 100,
+                      df.iat[10, 4] / df.iat[9, 4] * 100]
+        df.loc[13] = ['2019 Total Daytime at Home Population (% of Daytime Population)',
+                      df.iat[11, 1] / df.iat[9, 1] * 100,
+                      df.iat[11, 2] / df.iat[9, 2] * 100,
+                      df.iat[11, 3] / df.iat[9, 3] * 100,
+                      df.iat[11, 4] / df.iat[9, 4] * 100]
         df.loc[14] = ['', '', '', '', '']
         df.loc[15] = ['DENSITY', '', '', '', '']
         df.loc[16] = ['2020 Population Density',
@@ -138,7 +179,11 @@ class DemandReport(_Reports):
                       df.iat[2, 2] / 1.77,
                       df.iat[2, 3] / 3.14,
                       df.iat[2, 4] / 4.91]
-        df.loc[17] = ['2020 Employee Density', '', '', '', '']
+        df.loc[17] = ['2020 Employee Density',
+                      df.iat[12, 1] / 0.79,
+                      df.iat[12, 2] / 1.77,
+                      df.iat[12, 3] / 3.14,
+                      df.iat[12, 4] / 4.91]
         df.loc[18] = ['', '', '', '', '']
 
         return df
@@ -199,7 +244,7 @@ class DemandReport(_Reports):
                      self.combined_data['2010 Mean Inc'][1],
                      self.combined_data['2010 Mean Inc'][2],
                      self.combined_data['2010 Mean Inc'][3]]
-        df.loc[3] = ['', '', '', '']
+        df.loc[3] = ['', '', '', '', '']
         df.loc[4] = ['2020 Household income: Median',
                      self.combined_data['2020 Median Inc'][0],
                      self.combined_data['2020 Median Inc'][1],
@@ -210,10 +255,10 @@ class DemandReport(_Reports):
                      self.combined_data['2020 Mean Inc'][1],
                      self.combined_data['2020 Mean Inc'][2],
                      self.combined_data['2020 Mean Inc'][3]]
-        df.loc[6] = ['', '', '', '']
+        df.loc[6] = ['', '', '', '', '']
         df.loc[7] = ['2024 Household income: Median', '', '', '', '']
         df.loc[8] = ['2024 Household income: Average', '', '', '', '']
-        df.loc[9] = ['', '', '', '']
+        df.loc[9] = ['', '', '', '', '']
 
         return df
 
@@ -345,28 +390,27 @@ class DemandReport(_Reports):
         df = pd.DataFrame({'DEMAND REPORT': [], '0.5-Mile Radius': [], '0.75-Mile Radius': [], '1.0-Mile Radius': [],
                            '1.25-Mile Radius': []})
         df.loc[0] = ['OCCUPATION', '', '', '', '']
-        blue_collar_by_radius = []
-        white_collar_by_radius = []
         df.loc[1] = ['% 2010 Occupation: White collar',
-                     white_collar_by_radius[0],
-                     white_collar_by_radius[1],
-                     white_collar_by_radius[2],
-                     white_collar_by_radius[3]]
+                     self.combined_data['2010 WCollar'][0],
+                     self.combined_data['2010 WCollar'][1],
+                     self.combined_data['2010 WCollar'][2],
+                     self.combined_data['2010 WCollar'][3]]
         df.loc[2] = ['% 2010 Occupation: Blue collar',
-                     blue_collar_by_radius[0],
-                     blue_collar_by_radius[1],
-                     blue_collar_by_radius[2],
-                     blue_collar_by_radius[3]]
+                     self.combined_data['2010 BCollar'][0],
+                     self.combined_data['2010 BCollar'][1],
+                     self.combined_data['2010 BCollar'][2],
+                     self.combined_data['2010 BCollar'][3]]
         df.loc[3] = ['% 2019 Occupation: White collar',
-                     self.current_acs['pctManProfOccs'][0] + self.current_acs['pctSalesOffOccs'][0],
-                     self.current_acs['pctManProfOccs'][1] + self.current_acs['pctSalesOffOccs'][1],
-                     self.current_acs['pctManProfOccs'][2] + self.current_acs['pctSalesOffOccs'][2],
-                     self.current_acs['pctManProfOccs'][3] + self.current_acs['pctSalesOffOccs'][3]]
+                     self.acs_data_current['pctManProfOccs'][0] + self.acs_data_current['pctSalesOffOccs'][0],
+                     self.acs_data_current['pctManProfOccs'][1] + self.acs_data_current['pctSalesOffOccs'][1],
+                     self.acs_data_current['pctManProfOccs'][2] + self.acs_data_current['pctSalesOffOccs'][2],
+                     self.acs_data_current['pctManProfOccs'][3] + self.acs_data_current['pctSalesOffOccs'][3]]
         df.loc[4] = ['% 2019 Occupation: Blue collar',
                      100 - df.iat[3, 1],
                      100 - df.iat[3, 2],
                      100 - df.iat[3, 3],
                      100 - df.iat[3, 4]]
+        df.loc[5] = ['', '', '', '', '']
         return df
 
     def __get_age_occupancy(self):
@@ -379,27 +423,27 @@ class DemandReport(_Reports):
         df.loc[0] = ['AGE & OCCUPANCY', '', '', '', '']
         df.loc[1] = ['AGE', '', '', '', '']
         df.loc[2] = ['% 2019 Total Population: Median Age',
-                     self.current_acs['MedianAge'][0],
-                     self.current_acs['MedianAge'][1],
-                     self.current_acs['MedianAge'][2],
-                     self.current_acs['MedianAge'][3]]
+                     self.acs_data_current['MedianAge'][0],
+                     self.acs_data_current['MedianAge'][1],
+                     self.acs_data_current['MedianAge'][2],
+                     self.acs_data_current['MedianAge'][3]]
         df.loc[3] = ['', '', '', '', '']
         df.loc[4] = ['OCCUPANCY', '', '', '', '']
         df.loc[5] = ['2019 Households',
-                     self.current_acs['TotHHs'][0],
-                     self.current_acs['TotHHs'][1],
-                     self.current_acs['TotHHs'][2],
-                     self.current_acs['TotHHs'][3]]
+                     self.combined_data['2020 HH'][0],
+                     self.combined_data['2020 HH'][1],
+                     self.combined_data['2020 HH'][2],
+                     self.combined_data['2020 HH'][3]]
         df.loc[6] = ['% 2019 Owner Occupied Housing Units',
-                     self.current_acs['pctOwnerOcc'][0],
-                     self.current_acs['pctOwnerOcc'][1],
-                     self.current_acs['pctOwnerOcc'][2],
-                     self.current_acs['pctOwnerOcc'][3]]
+                     self.acs_data_current['pctOwnerOcc'][0],
+                     self.acs_data_current['pctOwnerOcc'][1],
+                     self.acs_data_current['pctOwnerOcc'][2],
+                     self.acs_data_current['pctOwnerOcc'][3]]
         df.loc[7] = ['% 2019 Renter Occupied Housing Units',
-                     self.current_acs['pctRenterOcc'][0],
-                     self.current_acs['pctRenterOcc'][1],
-                     self.current_acs['pctRenterOcc'][2],
-                     self.current_acs['pctRenterOcc'][3]]
+                     self.acs_data_current['pctRenterOcc'][0],
+                     self.acs_data_current['pctRenterOcc'][1],
+                     self.acs_data_current['pctRenterOcc'][2],
+                     self.acs_data_current['pctRenterOcc'][3]]
         df.loc[8] = ['', '', '', '', '']
         return df
 
@@ -419,13 +463,17 @@ class DemandReport(_Reports):
         PCT_GASOLINE_OOT = 0.0581867323745
         PCT_MOTOR_OIL = 0.0066710599202
         PCT_LUBE_OIL = 0.1143031164349
+        median_income = [self.combined_data['2020 Median Inc'][0],
+                         self.combined_data['2020 Median Inc'][1],
+                         self.combined_data['2020 Median Inc'][2],
+                         self.combined_data['2020 Median Inc'][3]]
         df = pd.DataFrame({'DEMAND REPORT': [], '0.5-Mile Radius': [], '0.75-Mile Radius': [], '1.0-Mile Radius': [],
                            '1.25-Mile Radius': []})
         df.loc[0] = ['AUTOMOTIVE',
-                     AUTO_INTERCEPT + (self.median_income[0] * AUTO_VAR_1) - (self.median_income[0] ** 2. * AUTO_VAR_2),
-                     AUTO_INTERCEPT + (self.median_income[1] * AUTO_VAR_1) - (self.median_income[1] ** 2. * AUTO_VAR_2),
-                     AUTO_INTERCEPT + (self.median_income[2] * AUTO_VAR_1) - (self.median_income[2] ** 2. * AUTO_VAR_2),
-                     AUTO_INTERCEPT + (self.median_income[3] * AUTO_VAR_1) - (self.median_income[3] ** 2. * AUTO_VAR_2)]
+                     AUTO_INTERCEPT + (median_income[0] * AUTO_VAR_1) - (median_income[0] ** 2. * AUTO_VAR_2),
+                     AUTO_INTERCEPT + (median_income[1] * AUTO_VAR_1) - (median_income[1] ** 2. * AUTO_VAR_2),
+                     AUTO_INTERCEPT + (median_income[2] * AUTO_VAR_1) - (median_income[2] ** 2. * AUTO_VAR_2),
+                     AUTO_INTERCEPT + (median_income[3] * AUTO_VAR_1) - (median_income[3] ** 2. * AUTO_VAR_2)]
         df.loc[1] = ['2019 Gasoline (Household Average)',
                      df.iat[0, 1] * PCT_GASOLINE,
                      df.iat[0, 2] * PCT_GASOLINE,
@@ -446,10 +494,10 @@ class DemandReport(_Reports):
                      df.iat[0, 2] * PCT_MOTOR_OIL,
                      df.iat[0, 3] * PCT_MOTOR_OIL,
                      df.iat[0, 4] * PCT_MOTOR_OIL]
-        maintenance = [(self.median_income[0] * MAINTENANCE_VAR_1) - (self.median_income[0] ** 2 * MAINTENANCE_VAR_2),
-                       (self.median_income[1] * MAINTENANCE_VAR_1) - (self.median_income[1] ** 2 * MAINTENANCE_VAR_2),
-                       (self.median_income[2] * MAINTENANCE_VAR_1) - (self.median_income[2] ** 2 * MAINTENANCE_VAR_2),
-                       (self.median_income[3] * MAINTENANCE_VAR_1) - (self.median_income[3] ** 2 * MAINTENANCE_VAR_2)]
+        maintenance = [(median_income[0] * MAINTENANCE_VAR_1) - (median_income[0] ** 2 * MAINTENANCE_VAR_2),
+                       (median_income[1] * MAINTENANCE_VAR_1) - (median_income[1] ** 2 * MAINTENANCE_VAR_2),
+                       (median_income[2] * MAINTENANCE_VAR_1) - (median_income[2] ** 2 * MAINTENANCE_VAR_2),
+                       (median_income[3] * MAINTENANCE_VAR_1) - (median_income[3] ** 2 * MAINTENANCE_VAR_2)]
         for index, val in enumerate(maintenance):
             maintenance[index] = MAINTENANCE_INTERCEPT + val
         df.loc[5] = ['2019 Lube, oil change, and oil filters (Household Average)',
@@ -476,9 +524,11 @@ class DemandReport(_Reports):
         FOOD_AWAY_VAR_1 = 0.0247768430538488
         ALCOHOL_INTERCEPT = 191.7620622831
         ALCOHOL_VAR_1 = 0.0046904313
-        TOBACCO_INTERCEPT = 272.6473946058
-        TOBACCO_VAR_1 = 0.002852737
-        TOBACCO_VAR_2 = 0.0000000269
+        TOBACCO_INTERCEPT = 259.05675802023478
+        TOBACCO_VAR_1 = 0.0039486735202233121
+        TOBACCO_VAR_2 = -0.000000047432835935931843
+        TOBACCO_VAR_3 = 1.7766697338070551e-013
+        TOBACCO_VAR_4 = -2.1917172106300310e-019
         PCT_RESTAURANT_MEALS = 0.845561521
         PCT_BREAKFAST = 0.106167026
         PCT_LUNCH = 0.323562559
@@ -495,23 +545,31 @@ class DemandReport(_Reports):
                       self.combined_data['2020 HH'][1],
                       self.combined_data['2020 HH'][2],
                       self.combined_data['2020 HH'][3]]
+        median_income = [self.combined_data['2020 Median Inc'][0],
+                         self.combined_data['2020 Median Inc'][1],
+                         self.combined_data['2020 Median Inc'][2],
+                         self.combined_data['2020 Median Inc'][3]]
         df = pd.DataFrame({'DEMAND REPORT': [], '0.5-Mile Radius': [], '0.75-Mile Radius': [],
                            '1.0-Mile Radius': [], '1.25-Mile Radius': []})
-        df.loc[1] = ['2019 Food at home (Household Average)',
-                     FOOD_HOME_INTERCEPT + (self.median_income[0] * FOOD_HOME_VAR_1),
-                     FOOD_HOME_INTERCEPT + (self.median_income[1] * FOOD_HOME_VAR_1),
-                     FOOD_HOME_INTERCEPT + (self.median_income[2] * FOOD_HOME_VAR_1),
-                     FOOD_HOME_INTERCEPT + (self.median_income[3] * FOOD_HOME_VAR_1)]
+        food_at_home = [FOOD_HOME_INTERCEPT + (median_income[0] * FOOD_HOME_VAR_1),
+                        FOOD_HOME_INTERCEPT + (median_income[1] * FOOD_HOME_VAR_1),
+                        FOOD_HOME_INTERCEPT + (median_income[2] * FOOD_HOME_VAR_1),
+                        FOOD_HOME_INTERCEPT + (median_income[3] * FOOD_HOME_VAR_1)]
         df.loc[0] = ['2019 Food at home',
-                     df.iat[1, 1] * households[0],
-                     df.iat[1, 2] * households[1],
-                     df.iat[1, 3] * households[2],
-                     df.iat[1, 4] * households[3]]
+                     food_at_home[0] * households[0],
+                     food_at_home[1] * households[1],
+                     food_at_home[2] * households[2],
+                     food_at_home[3] * households[3]]
+        df.loc[1] = ['2019 Food at home (Household Average)',
+                     food_at_home[0],
+                     food_at_home[1],
+                     food_at_home[2],
+                     food_at_home[3]]
         df.loc[2] = ['2019 Food away from home (Household Average)',
-                     FOOD_AWAY_INTERCEPT + (self.median_income[0] * FOOD_AWAY_VAR_1),
-                     FOOD_AWAY_INTERCEPT + (self.median_income[1] * FOOD_AWAY_VAR_1),
-                     FOOD_AWAY_INTERCEPT + (self.median_income[2] * FOOD_AWAY_VAR_1),
-                     FOOD_AWAY_INTERCEPT + (self.median_income[3] * FOOD_AWAY_VAR_1)]
+                     FOOD_AWAY_INTERCEPT + (median_income[0] * FOOD_AWAY_VAR_1),
+                     FOOD_AWAY_INTERCEPT + (median_income[1] * FOOD_AWAY_VAR_1),
+                     FOOD_AWAY_INTERCEPT + (median_income[2] * FOOD_AWAY_VAR_1),
+                     FOOD_AWAY_INTERCEPT + (median_income[3] * FOOD_AWAY_VAR_1)]
         df.loc[3] = ['2019 Meals at restaurants, carry outs and other (Household Average)',
                      PCT_RESTAURANT_MEALS * df.iat[2, 1],
                      PCT_RESTAURANT_MEALS * df.iat[2, 2],
@@ -532,16 +590,20 @@ class DemandReport(_Reports):
                      PCT_DINNER * df.iat[2, 2],
                      PCT_DINNER * df.iat[2, 3],
                      PCT_DINNER * df.iat[2, 4]]
-        df.loc[8] = ['2019 Alcoholic Beverages (Household Average)',
-                     ALCOHOL_INTERCEPT + (self.median_income[0] * ALCOHOL_VAR_1),
-                     ALCOHOL_INTERCEPT + (self.median_income[1] * ALCOHOL_VAR_1),
-                     ALCOHOL_INTERCEPT + (self.median_income[2] * ALCOHOL_VAR_1),
-                     ALCOHOL_INTERCEPT + (self.median_income[3] * ALCOHOL_VAR_1)]
+        alcoholic_beverages = [ALCOHOL_INTERCEPT + (median_income[0] * ALCOHOL_VAR_1),
+                               ALCOHOL_INTERCEPT + (median_income[1] * ALCOHOL_VAR_1),
+                               ALCOHOL_INTERCEPT + (median_income[2] * ALCOHOL_VAR_1),
+                               ALCOHOL_INTERCEPT + (median_income[3] * ALCOHOL_VAR_1)]
         df.loc[7] = ['2019 Alcoholic Beverages',
-                     df.iat[8, 1] * households[0],
-                     df.iat[8, 2] * households[1],
-                     df.iat[8, 3] * households[2],
-                     df.iat[8, 4] * households[3]]
+                     alcoholic_beverages[0] * households[0],
+                     alcoholic_beverages[1] * households[1],
+                     alcoholic_beverages[2] * households[2],
+                     alcoholic_beverages[3] * households[3]]
+        df.loc[8] = ['2019 Alcoholic Beverages (Household Average)',
+                     alcoholic_beverages[0],
+                     alcoholic_beverages[1],
+                     alcoholic_beverages[2],
+                     alcoholic_beverages[3]]
         df.loc[9] = ['2019 At Home (Household Average)',
                      PCT_ALCOHOL_HOME * df.iat[8, 1],
                      PCT_ALCOHOL_HOME * df.iat[8, 2],
@@ -552,100 +614,133 @@ class DemandReport(_Reports):
                       PCT_ALCOHOL_AWAY * df.iat[8, 2],
                       PCT_ALCOHOL_AWAY * df.iat[8, 3],
                       PCT_ALCOHOL_AWAY * df.iat[8, 4]]
-        df.loc[12] = ['2019 Beer and ale (Household Average)',
-                      PCT_BEER * df.iat[8, 1],
-                      PCT_BEER * df.iat[8, 2],
-                      PCT_BEER * df.iat[8, 3],
-                      PCT_BEER * df.iat[8, 4]]
+        beer_ale = [PCT_BEER * df.iat[8, 1],
+                    PCT_BEER * df.iat[8, 2],
+                    PCT_BEER * df.iat[8, 3],
+                    PCT_BEER * df.iat[8, 4]]
         df.loc[11] = ['2019 Beer and Ale',
-                      df.iat[12, 1] * households[0],
-                      df.iat[12, 2] * households[1],
-                      df.iat[12, 3] * households[2],
-                      df.iat[12, 4] * households[3]]
-        df.loc[14] = ['2019 Wine (Household Average)',
-                      PCT_WINE * df.iat[8, 1],
-                      PCT_WINE * df.iat[8, 2],
-                      PCT_WINE * df.iat[8, 3],
-                      PCT_WINE * df.iat[8, 4]]
+                      beer_ale[0] * households[0],
+                      beer_ale[1] * households[1],
+                      beer_ale[2] * households[2],
+                      beer_ale[3] * households[3]]
+        df.loc[12] = ['2019 Beer and ale (Household Average)',
+                      beer_ale[0],
+                      beer_ale[1],
+                      beer_ale[2],
+                      beer_ale[3]]
+        wine = [PCT_WINE * df.iat[8, 1],
+                PCT_WINE * df.iat[8, 2],
+                PCT_WINE * df.iat[8, 3],
+                PCT_WINE * df.iat[8, 4]]
         df.loc[13] = ['2019 Wine',
-                      df.iat[14, 1] * households[0],
-                      df.iat[14, 2] * households[1],
-                      df.iat[14, 3] * households[2],
-                      df.iat[14, 4] * households[3]]
-        df.loc[16] = ['2019 Other Alcoholic Beverages (Household Average)',
-                      PCT_OTHER_ALCOHOL * df.iat[8, 1],
-                      PCT_OTHER_ALCOHOL * df.iat[8, 2],
-                      PCT_OTHER_ALCOHOL * df.iat[8, 3],
-                      PCT_OTHER_ALCOHOL * df.iat[8, 4]]
+                      wine[0] * households[0],
+                      wine[1] * households[1],
+                      wine[2] * households[2],
+                      wine[3] * households[3]]
+        df.loc[14] = ['2019 Wine (Household Average)',
+                      wine[0],
+                      wine[1],
+                      wine[2],
+                      wine[3]]
+        other_alcohol = [PCT_OTHER_ALCOHOL * df.iat[8, 1],
+                         PCT_OTHER_ALCOHOL * df.iat[8, 2],
+                         PCT_OTHER_ALCOHOL * df.iat[8, 3],
+                         PCT_OTHER_ALCOHOL * df.iat[8, 4]]
         df.loc[15] = ['2019 Other Alcoholic Beverages',
-                      df.iat[16, 1] * households[0],
-                      df.iat[16, 2] * households[1],
-                      df.iat[16, 3] * households[2],
-                      df.iat[16, 4] * households[3]]
-        tobacco = [(self.median_income[0] * TOBACCO_VAR_1) - (self.median_income[0] ** 2 * TOBACCO_VAR_2),
-                   (self.median_income[1] * TOBACCO_VAR_1) - (self.median_income[1] ** 2 * TOBACCO_VAR_2),
-                   (self.median_income[2] * TOBACCO_VAR_1) - (self.median_income[2] ** 2 * TOBACCO_VAR_2),
-                   (self.median_income[3] * TOBACCO_VAR_1) - (self.median_income[3] ** 2 * TOBACCO_VAR_2)]
-        df.loc[18] = ['2019 Tobacco products and smoking supplies (Household Average)',
-                      TOBACCO_INTERCEPT + tobacco[0],
-                      TOBACCO_INTERCEPT + tobacco[1],
-                      TOBACCO_INTERCEPT + tobacco[2],
-                      TOBACCO_INTERCEPT + tobacco[3]]
+                      other_alcohol[0] * households[0],
+                      other_alcohol[1] * households[1],
+                      other_alcohol[2] * households[2],
+                      other_alcohol[3] * households[3]]
+        df.loc[16] = ['2019 Other Alcoholic Beverages (Household Average)',
+                      other_alcohol[0],
+                      other_alcohol[1],
+                      other_alcohol[2],
+                      other_alcohol[3]]
+        tobacco = [0, 0, 0, 0]
+        for index, value in enumerate(median_income):
+            tobacco[index] = TOBACCO_INTERCEPT + value * TOBACCO_VAR_1 + value ** 2 * TOBACCO_VAR_2
+            tobacco[index] += value ** 3 * TOBACCO_VAR_3 + value ** 4 * TOBACCO_VAR_4
         df.loc[17] = ['2019 Tobacco products and smoking supplies',
-                      df.iat[18, 1] * households[0],
-                      df.iat[18, 2] * households[1],
-                      df.iat[18, 3] * households[2],
-                      df.iat[18, 4] * households[3]]
-        df.loc[20] = ['2019 Cigarettes (Household Average)',
-                      PCT_CIGARETTES * df.iat[18, 1],
+                      tobacco[0] * households[0],
+                      tobacco[1] * households[1],
+                      tobacco[2] * households[2],
+                      tobacco[3] * households[3]]
+        df.loc[18] = ['2019 Tobacco products and smoking supplies (Household Average)',
+                      tobacco[0],
+                      tobacco[1],
+                      tobacco[2],
+                      tobacco[3]]
+        cigarettes = [PCT_CIGARETTES * df.iat[18, 1],
                       PCT_CIGARETTES * df.iat[18, 2],
                       PCT_CIGARETTES * df.iat[18, 3],
                       PCT_CIGARETTES * df.iat[18, 4]]
         df.loc[19] = ['2019 Cigarettes',
-                      df.iat[20, 1] * households[0],
-                      df.iat[20, 2] * households[1],
-                      df.iat[20, 3] * households[2],
-                      df.iat[20, 4] * households[3]]
-        df.loc[22] = ['2019 Other Tobacco Products (Household Average)',
-                      PCT_OTHER_TOBACCO * df.iat[18, 1],
-                      PCT_OTHER_TOBACCO * df.iat[18, 2],
-                      PCT_OTHER_TOBACCO * df.iat[18, 3],
-                      PCT_OTHER_TOBACCO * df.iat[18, 4]]
+                      cigarettes[0] * households[0],
+                      cigarettes[1] * households[1],
+                      cigarettes[2] * households[2],
+                      cigarettes[3] * households[3]]
+        df.loc[20] = ['2019 Cigarettes (Household Average)',
+                      cigarettes[0],
+                      cigarettes[1],
+                      cigarettes[2],
+                      cigarettes[3]]
+        other_tobacco = [PCT_OTHER_TOBACCO * df.iat[18, 1],
+                         PCT_OTHER_TOBACCO * df.iat[18, 2],
+                         PCT_OTHER_TOBACCO * df.iat[18, 3],
+                         PCT_OTHER_TOBACCO * df.iat[18, 4]]
         df.loc[21] = ['2019 Other Tobacco Products',
-                      df.iat[22, 1] * households[0],
-                      df.iat[22, 2] * households[1],
-                      df.iat[22, 3] * households[2],
-                      df.iat[22, 4] * households[3]]
-        df.loc[24] = ['2019 Smoking Accessories (Household Average)',
-                      PCT_ACCESSORIES * df.iat[18, 1],
-                      PCT_ACCESSORIES * df.iat[18, 2],
-                      PCT_ACCESSORIES * df.iat[18, 3],
-                      PCT_ACCESSORIES * df.iat[18, 4]]
+                      other_tobacco[0] * households[0],
+                      other_tobacco[1] * households[1],
+                      other_tobacco[2] * households[2],
+                      other_tobacco[3] * households[3]]
+        df.loc[22] = ['2019 Other Tobacco Products (Household Average)',
+                      other_tobacco[0],
+                      other_tobacco[1],
+                      other_tobacco[2],
+                      other_tobacco[3]]
+        smoking_accessories = [PCT_ACCESSORIES * df.iat[18, 1],
+                               PCT_ACCESSORIES * df.iat[18, 2],
+                               PCT_ACCESSORIES * df.iat[18, 3],
+                               PCT_ACCESSORIES * df.iat[18, 4]]
         df.loc[23] = ['2019 Smoking Accessories',
-                      df.iat[24, 1] * households[0],
-                      df.iat[24, 2] * households[1],
-                      df.iat[24, 3] * households[2],
-                      df.iat[24, 4] * households[3]]
+                      smoking_accessories[0] * households[0],
+                      smoking_accessories[1] * households[1],
+                      smoking_accessories[2] * households[2],
+                      smoking_accessories[3] * households[3]]
+        df.loc[24] = ['2019 Smoking Accessories (Household Average)',
+                      smoking_accessories[0],
+                      smoking_accessories[1],
+                      smoking_accessories[2],
+                      smoking_accessories[3]]
 
         return df
 
     def __get_sales_potential_expenditure(self):
         food_alcohol_expenditure = self.__get_food_alcohol_expenditure()
         automotive_expenditure = self.__get_automotive_expenditure()
+        PCT_RESTAURANT = 0.473080402850928
+        households = [self.combined_data['2020 HH'][0],
+                      self.combined_data['2020 HH'][1],
+                      self.combined_data['2020 HH'][2],
+                      self.combined_data['2020 HH'][3]]
         df = pd.DataFrame({'DEMAND REPORT': [], '0.5-Mile Radius': [], '0.75-Mile Radius': [],
                            '1.0-Mile Radius': [], '1.25-Mile Radius': []})
-        df.loc[1] = ['2019 Food at home (Household Average)',
-                     FOOD_HOME_INTERCEPT + (self.median_income[0] * FOOD_HOME_VAR_1),
-                     FOOD_HOME_INTERCEPT + (self.median_income[1] * FOOD_HOME_VAR_1),
-                     FOOD_HOME_INTERCEPT + (self.median_income[2] * FOOD_HOME_VAR_1),
-                     FOOD_HOME_INTERCEPT + (self.median_income[3] * FOOD_HOME_VAR_1)]
-        df.loc[0] = ['2019 Food at home',
-                     df.iat[1, 1] * households[0],
-                     df.iat[1, 2] * households[1],
-                     df.iat[1, 3] * households[2],
-                     df.iat[1, 4] * households[3]]
-        df.loc[2] = ['2019 Food away from home (Household Average)',
-                     FOOD_AWAY_INTERCEPT + (self.median_income[0] * FOOD_AWAY_VAR_1),
-                     FOOD_AWAY_INTERCEPT + (self.median_income[1] * FOOD_AWAY_VAR_1),
-                     FOOD_AWAY_INTERCEPT + (self.median_income[2] * FOOD_AWAY_VAR_1),
-                     FOOD_AWAY_INTERCEPT + (self.median_income[3] * FOOD_AWAY_VAR_1)]
+        df.loc[0] = ['RETAIL SALES POTENTIAL', '', '', '', '']
+        df.loc[1] = ['2020 Convenience Stores', '', '', '', '']
+        df.loc[2] = ['2020 Gasoline Stations with Convenience Stores', '', '', '', '']
+        df.loc[3] = ['2020 Beer, Wine, and Liquor Stores',
+                     PCT_RESTAURANT * food_alcohol_expenditure.iat[10, 1] * households[0],
+                     PCT_RESTAURANT * food_alcohol_expenditure.iat[10, 2] * households[1],
+                     PCT_RESTAURANT * food_alcohol_expenditure.iat[10, 3] * households[2],
+                     PCT_RESTAURANT * food_alcohol_expenditure.iat[10, 4] * households[3]]
+        df.loc[4] = ['2020 Supermarkets and Other Grocery (Except Convenience) Stores', '', '', '', '']
+        df.loc[5] = ['2020 Restaurant Expenditures',
+                     PCT_RESTAURANT * food_alcohol_expenditure.iat[3, 1] * households[0],
+                     PCT_RESTAURANT * food_alcohol_expenditure.iat[3, 2] * households[1],
+                     PCT_RESTAURANT * food_alcohol_expenditure.iat[3, 3] * households[2],
+                     PCT_RESTAURANT * food_alcohol_expenditure.iat[3, 4] * households[3]]
+        df.loc[6] = ['', '', '', '', '']
+        df.loc[7] = ['HOUSEHOLD EXPENDITURES', '', '', '', '']
+        df = pd.concat([df, automotive_expenditure, food_alcohol_expenditure])
+
+        return df
