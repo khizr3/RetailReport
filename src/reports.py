@@ -10,8 +10,9 @@ import data_source
 import pandas as pd  # Using DataFrames to store and manipulate data
 
 
-class _Reports:
+class Reports:
     def __init__(self, location_address):
+        self.address = location_address
         acs_data = data_source.ACSData(location_address)
 
         self.acs_data_current = acs_data.get_current_caps()
@@ -52,13 +53,10 @@ class _Reports:
                 data_2010[5] += af * float(tract_row['Mean income'].values[0])
                 data_2010[6] = 0
                 data_2010[7] = 0
-                print(af, percent_of_tract, row)
             for row in radius_pop_current.itertuples():
                 tract_row = self.census_report_current.loc[self.census_report_current['TractNumber'] == row[1]]
                 af = row[3] / pop_current
                 percent_of_tract = row[3] / float(tract_row['Total population'].values[0])
-                print('AF Table for tract: ', row[1], ' at radius: ', radius)
-                print(af, percent_of_tract, row)
                 data_current[0] += percent_of_tract * af * float(tract_row['Total population'].values[0])
                 data_current[1] += percent_of_tract * af * float(tract_row['Total households'].values[0])
                 data_current[2] += af * float(tract_row['PCT WHITE COLLAR'].values[0])
@@ -75,16 +73,19 @@ class _Reports:
             df.loc[len(df.index)] = data_2010 + data_current
         return df
 
+    def get_demand_report(self):
+        return DemandReport(self).get_demand_report()
 
-class DemandReport(_Reports):
+    def get_trade_area(self):
+        return TradeArea(self).get_trade_area()
+
+
+class DemandReport:
     # Initialization method to get the required coordinates data
-    def __init__(self, location_address):
-        super().__init__(location_address)
-        """
-        
-        # self.__get_automotive_expenditure()
-        self.__get_occupation()
-        """
+    def __init__(self, report):
+        self.acs_data_current = report.acs_data_current
+        self.pop_hh_2000 = report.pop_hh_2000
+        self.combined_data = report.combined_data
 
     def get_demand_report(self):
         """
@@ -742,5 +743,36 @@ class DemandReport(_Reports):
         df.loc[6] = ['', '', '', '', '']
         df.loc[7] = ['HOUSEHOLD EXPENDITURES', '', '', '', '']
         df = pd.concat([df, automotive_expenditure, food_alcohol_expenditure])
+
+        return df
+
+
+class TradeArea:
+    def __init__(self, report):
+        self.acs_data_current = report.acs_data_current
+        self.combined_data = report.combined_data
+
+    def get_trade_area(self):
+        vehicle_1 = int(self.acs_data_current['Vehicles1'][1])
+        vehicle_2 = 2 * int(self.acs_data_current['Vehicles2'][1])
+        vehicles_GE3 = 3.2 * int(self.acs_data_current['VehiclesGE3'][1])
+        df = pd.DataFrame({'Trade Area': [], '0.75 Mile': [], 'Value': []})
+        df.loc[0] = ['2020 Population', '0.75-Mile',
+                     self.combined_data['2020 Pop'][1]]
+        df.loc[1] = ['2020 Households', '0.75-Mile',
+                     self.combined_data['2020 HH'][1]]
+        df.loc[2] = ['% Household Change 2020-2024', '0.75-Mile',
+                     '']
+        df.loc[3] = ['2019 Average HH Income', '0.75-Mile',
+                     self.combined_data['2020 Mean Inc'][1]]
+        df.loc[4] = ['2019 Median HH Income', '0.75-Mile',
+                     self.combined_data['2020 Median Inc'][1]]
+        df.loc[5] = ['Total Household Vehicles', '0.75-Mile',
+                     vehicle_1 + vehicle_2 + vehicles_GE3]
+        df.loc[6] = ['Total Employees', '0.75-Mile',
+                     self.combined_data['2020 Employees'][1]]
+        df.loc[7] = ['Total Daytime Population at Home', '0.75-Mile',
+                     self.combined_data['2020 Daytime Pop'][1] - df.iat[6, 2]]
+        df.loc[8] = ['Density Class', '0.75-Mile', 'Suburban']
 
         return df
