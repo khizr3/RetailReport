@@ -11,7 +11,7 @@ Created: May 23rd, 2022
 # Imports
 import sys
 import data_source
-from reports import DemandReport
+from reports import Reports, DemandReport, TradeArea
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -19,8 +19,9 @@ if __name__ == '__main__':
     # location_coordinates = get_lat_long(location_address)
     # data_object = data_source.DataSources(location_coordinates)
     # required_data = data_source.ACSData('2222 black oak dr sugar land')
-    demand_report = DemandReport('2222 black oak dr sugar land').get_demand_report()
-    demand_report.to_excel('2222 black oak dr sugar land.xlsx')
-    for row in demand_report.itertuples():
-        print(row)
+    required_reports = Reports('2222 black oak dr sugar land')
+    demand_report = required_reports.get_demand_report()
+    trade_area = required_reports.get_trade_area()
+    demand_report.to_excel('../reports/2222 black oak dr sugar land demand report.xlsx')
+    trade_area.to_excel('../reports/2222 black oak dr sugar land trade area.xlsx')
     sys.exit()
