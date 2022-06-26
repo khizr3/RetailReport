@@ -6,7 +6,6 @@ Author: Khizr Ali Khizr89@gmail.com
 Created: June 9th, 2022
 """
 # Imports
-from geopy.geocoders import Nominatim
 import pandas as pd  # Using DataFrames to store and manipulate data
 import re
 from selenium import webdriver  # Needed to get CAPS demographic data
@@ -16,26 +15,11 @@ from selenium.webdriver.common.by import By  # Needed to select web attributes
 from webdriver_manager.chrome import ChromeDriverManager  # Needed to install webdriver if not in cache
 
 
-# Method to get the Latitude and Longitude of an address
-def get_lat_long(address):
-    """
-
-    param address: <String>
-        String of the address for which we want to get the latitude and longitude
-    return: [lat,long] <List>
-        List of the latitude and longitude of address provided
-    """
-    locator = Nominatim(user_agent="rsa-application")
-    location = locator.geocode(address)
-    print('Latitude = {}, Longitude = {}'.format(location.latitude, location.longitude))
-    return [location.latitude, location.longitude]
-
-
 def init_driver():
     chrome_options = Options()
     chrome_options.add_argument("--headless")
-    s = Service(ChromeDriverManager(log_level=0).install())
-    driver = webdriver.Chrome(service=s, options=chrome_options)
+    # s = Service(ChromeDriverManager(log_level=0).install())
+    driver = webdriver.Chrome(ChromeDriverManager(log_level=0).install(), options=chrome_options)
     return driver
 
 
@@ -60,8 +44,7 @@ def get_2020_census_caps():
 # A class for retrieving ACS data from the MCDC Missouri Website
 # Requires an address from which to retrieve coordinates
 class ACSData:
-    def __init__(self, location_address):
-        location_coordinates = get_lat_long(location_address)
+    def __init__(self, location_coordinates):
         self.lat = location_coordinates[0]
         self.long = location_coordinates[1]
         self.current_driver = init_driver()
@@ -163,9 +146,10 @@ class ACSData:
     def quit_drivers(self):
         self.driver_2000.close()
         self.driver_2000.quit()
-
+        print('Driver_2000 Closed')
         self.driver_2010.close()
         self.driver_2010.quit()
-
+        print('Driver_2010 Closed')
         self.current_driver.close()
         self.current_driver.quit()
+        print('Driver_Current Closed')

@@ -11,9 +11,8 @@ import pandas as pd  # Using DataFrames to store and manipulate data
 
 
 class Reports:
-    def __init__(self, location_address):
-        self.address = location_address
-        acs_data = data_source.ACSData(location_address)
+    def __init__(self, location_coordinates):
+        acs_data = data_source.ACSData(location_coordinates)
 
         self.acs_data_current = acs_data.get_current_caps()
 
